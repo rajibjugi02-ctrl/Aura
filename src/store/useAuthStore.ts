@@ -109,10 +109,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         process.env.NEXT_PUBLIC_SUPABASE_URL &&
         !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
       ) {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
         await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+            redirectTo: `${origin}/auth/callback`,
           },
         });
         return;

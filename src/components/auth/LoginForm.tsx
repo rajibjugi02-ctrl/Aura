@@ -47,7 +47,15 @@ export function LoginForm() {
     setIsLoading(true);
     try {
       await loginWithGoogle();
-      router.push("/");
+      if (
+        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
+      ) {
+        router.push("/");
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
+      setError("Failed to initialize Google login. Please try again.");
     } finally {
       setIsLoading(false);
     }

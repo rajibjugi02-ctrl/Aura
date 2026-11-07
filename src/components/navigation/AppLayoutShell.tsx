@@ -13,34 +13,74 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const [hasMounted, setHasMounted] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const isAuthPage = pathname.startsWith("/auth");
+  const isCallbackPage = pathname === "/auth/callback";
 
   useEffect(() => {
     setHasMounted(true);
+
+    // If on callback page, let AuthCallbackPage handle the token exchange directly
+    if (isCallbackPage) {
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    const hasOAuthParams =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("access_token=") ||
+        window.location.search.includes("code="));
 
     // Hydrate Supabase authentication session on initial load
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         useAuthStore.getState().syncSupabaseUser(session.user);
       }
-    }).catch(() => {});
+      if (!hasOAuthParams) {
+        setIsCheckingAuth(false);
+      }
+    }).catch(() => {
+      setIsCheckingAuth(false);
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         useAuthStore.getState().syncSupabaseUser(session.user);
+        setIsCheckingAuth(false);
+        if (pathname.startsWith("/auth") && pathname !== "/auth/callback") {
+          router.replace("/");
+        }
       } else if (event === "SIGNED_OUT") {
         useAuthStore.getState().logout();
+        setIsCheckingAuth(false);
+      } else {
+        setIsCheckingAuth(false);
       }
     });
 
+    const safetyTimer = setTimeout(() => {
+      setIsCheckingAuth(false);
+    }, 1800);
+
     return () => {
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
-  }, []);
-
-  const isAuthPage = pathname.startsWith("/auth");
+  }, [isCallbackPage, pathname, router]);
 
   useEffect(() => {
-    if (!hasMounted) return;
+    if (!hasMounted || isCheckingAuth) return;
+
+    // Never redirect away from the callback page
+    if (isCallbackPage) return;
+
+    // Wait if URL has active OAuth tokens in flight
+    const hasOAuthParams =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("access_token=") ||
+        window.location.search.includes("code="));
+    if (hasOAuthParams) return;
 
     // Unauthenticated users must strictly start at Login
     if (!isAuthenticated && !isAuthPage) {
@@ -48,10 +88,10 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
     } else if (isAuthenticated && isAuthPage) {
       router.replace("/");
     }
-  }, [isAuthenticated, isAuthPage, hasMounted, router]);
+  }, [isAuthenticated, isAuthPage, isCallbackPage, hasMounted, isCheckingAuth, router]);
 
-  // Prevent flash during hydration
-  if (!hasMounted) {
+  // Prevent flash during hydration or initial auth check
+  if (!hasMounted || (isCheckingAuth && !isAuthPage)) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-slate-900 border-t-transparent animate-spin" />
