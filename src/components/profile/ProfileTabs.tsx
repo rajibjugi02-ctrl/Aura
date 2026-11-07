@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Grid, Film, Repeat, Heart, MessageCircle, Plus } from "lucide-react";
 import { useFeedStore } from "@/store/useFeedStore";
 import { useReelsStore } from "@/store/useReelsStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useCreateMenuStore } from "@/store/useCreateMenuStore";
 
 type TabType = "feed" | "reels" | "repost";
@@ -14,13 +15,29 @@ export function ProfileTabs() {
   const [activeTab, setActiveTab] = useState<TabType>("feed");
   const { posts } = useFeedStore();
   const { reels } = useReelsStore();
+  const { currentUser } = useAuthStore();
   const { openCreateMenu } = useCreateMenuStore();
 
-  const repostedPosts = posts.filter((p) => p.isReposted);
+  // Filter content strictly for the current logged-in profile
+  const myPosts = posts.filter(
+    (p) =>
+      p.author?.id === currentUser?.id ||
+      (currentUser?.username &&
+        p.author?.username?.toLowerCase() === currentUser?.username?.toLowerCase())
+  );
+
+  const myReels = reels.filter(
+    (r) =>
+      r.author?.id === currentUser?.id ||
+      (currentUser?.username &&
+        r.author?.username?.toLowerCase() === currentUser?.username?.toLowerCase())
+  );
+
+  const repostedPosts = myPosts.filter((p) => p.isReposted);
 
   const TABS = [
-    { id: "feed", label: "Posts", icon: Grid, count: posts.length },
-    { id: "reels", label: "Reels", icon: Film, count: reels.length },
+    { id: "feed", label: "Posts", icon: Grid, count: myPosts.length },
+    { id: "reels", label: "Reels", icon: Film, count: myReels.length },
     { id: "repost", label: "Reposts", icon: Repeat, count: repostedPosts.length },
   ];
 
@@ -69,7 +86,7 @@ export function ProfileTabs() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
             >
-              {posts.length === 0 ? (
+              {myPosts.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 space-y-3">
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
                     <Grid className="w-6 h-6" />
@@ -88,7 +105,7 @@ export function ProfileTabs() {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {posts.map((post) => (
+                  {myPosts.map((post) => (
                     <Link
                       key={post.id}
                       href={`/post/${post.id}`}
@@ -123,7 +140,7 @@ export function ProfileTabs() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
             >
-              {reels.length === 0 ? (
+              {myReels.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 space-y-3">
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
                     <Film className="w-6 h-6" />
@@ -142,7 +159,7 @@ export function ProfileTabs() {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {reels.map((reel) => (
+                  {myReels.map((reel) => (
                     <Link
                       key={reel.id}
                       href={`/reels/${reel.id}`}

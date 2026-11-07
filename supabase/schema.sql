@@ -93,3 +93,4 @@ create policy "Allow all comments" on public.post_comments for all using (true) 
 create policy "Allow all stories" on public.stories for all using (true) with check (true);
 create policy "Allow all reels" on public.reels for all using (true) with check (true);
 create policy "Allow all messages" on public.messages for all using (true) with check (true);
+

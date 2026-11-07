@@ -20,6 +20,13 @@ export function ProfileHeader() {
     currentUser?.avatar ||
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop";
 
+  const myPostsCount = posts.filter(
+    (p) =>
+      p.author?.id === currentUser?.id ||
+      (currentUser?.username &&
+        p.author?.username?.toLowerCase() === currentUser?.username?.toLowerCase())
+  ).length;
+
   return (
     <div className="w-full space-y-4">
       {/* Top Username bar with switch account pop-up trigger */}
@@ -61,7 +68,7 @@ export function ProfileHeader() {
         <div className="flex-1 flex justify-around text-center">
           <div>
             <div className="font-bold text-slate-900 text-base sm:text-lg">
-              {posts.length}
+              {myPostsCount}
             </div>
             <div className="text-[11px] text-slate-500 font-medium">Posts</div>
           </div>

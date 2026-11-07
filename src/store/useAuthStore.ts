@@ -158,68 +158,79 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user_metadata?: {
         full_name?: string;
         name?: string;
+        given_name?: string;
+        family_name?: string;
+        preferred_username?: string;
         user_name?: string;
         avatar_url?: string;
         picture?: string;
+        avatar?: string;
         bio?: string;
       };
     };
     if (!user) return;
+
     const email = user.email || "";
-    const name =
+
+    // 1. Extract authentic Google Full Name
+    const googleFullName =
       user.user_metadata?.full_name ||
       user.user_metadata?.name ||
-      email.split("@")[0] ||
-      "Google Explorer";
-    const username = (
+      (user.user_metadata?.given_name
+        ? `${user.user_metadata.given_name} ${user.user_metadata?.family_name || ""}`.trim()
+        : "") ||
+      (email ? email.split("@")[0] : "Google User");
+
+    // 2. Extract authentic Google Username (e.g. from email 'rajibjugi02@gmail.com' -> 'rajibjugi02')
+    const googleUsername = (
+      user.user_metadata?.preferred_username ||
       user.user_metadata?.user_name ||
-      email.split("@")[0] ||
-      `user_${Math.floor(Math.random() * 899 + 100)}`
+      (email ? email.split("@")[0] : googleFullName.toLowerCase().replace(/\s+/g, "_"))
     )
       .toLowerCase()
       .replace(/[^a-z0-9._]/g, "");
-    const avatar =
+
+    // 3. Extract authentic Google Profile Avatar
+    const googleAvatar =
       user.user_metadata?.avatar_url ||
       user.user_metadata?.picture ||
+      user.user_metadata?.avatar ||
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop";
 
+    // Build the authentic Google account object
+    const updatedAccount: UserAccount = {
+      id: user.id || `acc_google_${Date.now()}`,
+      name: googleFullName,
+      username: googleUsername,
+      email: email,
+      avatar: googleAvatar,
+      bio: user.user_metadata?.bio || "Joined via Google",
+      links: [],
+      isCurrent: true,
+    };
+
     const { accounts } = get();
-    let account = accounts.find(
+
+    // Remove any previous generic dummy "user" account and avoid duplicates
+    const filteredAccounts = accounts.filter(
       (a) =>
-        a.id === user.id ||
-        (email && a.email.toLowerCase() === email.toLowerCase()) ||
-        a.username.toLowerCase() === username
+        a.id !== updatedAccount.id &&
+        a.username !== "user" &&
+        a.username !== updatedAccount.username &&
+        (!email || a.email.toLowerCase() !== email.toLowerCase())
     );
 
-    if (!account) {
-      account = {
-        id: user.id || `acc_supabase_${Date.now()}`,
-        name,
-        username,
-        email,
-        avatar,
-        bio: user.user_metadata?.bio || "",
-        links: [],
-        isCurrent: true,
-      };
-    } else {
-      account = {
-        ...account,
-        name: account.name || name,
-        avatar: account.avatar || avatar,
-        isCurrent: true,
-      };
-    }
-
-    const updatedAccounts = accounts.some((a) => a.id === account!.id)
-      ? accounts.map((a) => ({ ...a, isCurrent: a.id === account!.id }))
-      : [...accounts.map((a) => ({ ...a, isCurrent: false })), account];
+    const newAccounts = [
+      updatedAccount,
+      ...filteredAccounts.map((a) => ({ ...a, isCurrent: false })),
+    ];
 
     const newState = {
-      currentUser: account,
-      accounts: updatedAccounts,
+      currentUser: updatedAccount,
+      accounts: newAccounts,
       isAuthenticated: true,
     };
+
     set(newState);
     persistState(newState);
   },

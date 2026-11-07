@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useFeedStore } from "@/store/useFeedStore";
 import { supabase } from "@/lib/supabase";
 import { liveSync } from "@/lib/liveSync";
 import { DesktopFloatingSidebar } from "./DesktopFloatingSidebar";
@@ -24,6 +25,9 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
 
     // Initialize cross-device real-time sync engine
     liveSync.init();
+
+    // Clean any old mock posts
+    useFeedStore.getState().clearMockPosts();
 
     // Immediately restore stored session from localStorage on client mount (Zero delay)
     const restored = useAuthStore.getState().restoreSession();

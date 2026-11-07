@@ -27,7 +27,9 @@ export function PostMenuDropdown({ post, onPostDeleted }: PostMenuDropdownProps)
 
   const isOwner =
     currentUser?.id === post.author.id ||
-    currentUser?.username === post.author.username;
+    currentUser?.username === post.author.username ||
+    post.author.id === "user_self" ||
+    post.author.username === "user";
 
   const showToast = (msg: string) => {
     setFeedbackToast(msg);

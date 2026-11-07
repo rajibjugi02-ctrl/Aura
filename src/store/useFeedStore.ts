@@ -17,6 +17,7 @@ interface FeedState {
   toggleLikeComment: (postId: string, commentId: string) => void;
   deletePost: (postId: string) => void;
   archivePost: (postId: string) => void;
+  clearMockPosts: () => void;
   createPost: (
     post: Omit<
       Post,
@@ -221,6 +222,14 @@ export const useFeedStore = create<FeedState>()(
         liveSync.broadcast({ type: "POST_DELETE", postId });
         set((state) => ({
           posts: state.posts.filter((p) => p.id !== postId),
+        }));
+      },
+
+      clearMockPosts: () => {
+        set((state) => ({
+          posts: state.posts.filter(
+            (p) => p.author?.id !== "user_self" && p.author?.username !== "user"
+          ),
         }));
       },
 
