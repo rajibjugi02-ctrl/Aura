@@ -105,46 +105,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loginWithGoogle: async () => {
     try {
-      if (
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
-      ) {
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
-        await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: `${origin}/auth/callback`,
-          },
-        });
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error("Supabase Google OAuth error:", error.message);
+        throw error;
+      }
+
+      if (data?.url) {
+        window.location.assign(data.url);
         return;
       }
     } catch (e) {
-      console.warn("Supabase Google OAuth fallback:", e);
+      console.error("Google OAuth error:", e);
+      throw e;
     }
-
-    const googleUser: UserAccount = {
-      id: `acc_google_${Date.now()}`,
-      name: "Google Explorer",
-      username: `google_user_${Math.floor(Math.random() * 899 + 100)}`,
-      email: "google.user@gmail.com",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop",
-      bio: "Logged in via Google Authentication",
-      links: [],
-      isCurrent: true,
-    };
-
-    const { accounts } = get();
-    const updated = [
-      ...accounts.map((a) => ({ ...a, isCurrent: false })),
-      googleUser,
-    ];
-    const newState = {
-      currentUser: googleUser,
-      accounts: updated,
-      isAuthenticated: true,
-    };
-    set(newState);
-    persistState(newState);
   },
 
   syncSupabaseUser: (rawUser: unknown) => {

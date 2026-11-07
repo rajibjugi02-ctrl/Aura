@@ -11,55 +11,63 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let isHandled = false;
 
+    const completeAuth = (user: unknown) => {
+      if (isHandled) return;
+      isHandled = true;
+      if (user) {
+        useAuthStore.getState().syncSupabaseUser(user);
+      }
+      router.replace("/");
+    };
+
     const handleCallback = async () => {
       try {
-        // 1. Check if user session is already established
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && !isHandled) {
-          isHandled = true;
-          useAuthStore.getState().syncSupabaseUser(session.user);
-          router.replace("/");
-          return;
-        }
-
-        // 2. If PKCE authorization code is present in URL, exchange it for session
         if (typeof window !== "undefined") {
+          // 1. Handle PKCE authorization code if present
           const params = new URLSearchParams(window.location.search);
           const code = params.get("code");
           if (code) {
             const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-            if (!error && data?.session?.user && !isHandled) {
-              isHandled = true;
-              useAuthStore.getState().syncSupabaseUser(data.session.user);
-              router.replace("/");
+            if (!error && data?.session?.user) {
+              completeAuth(data.session.user);
               return;
             }
+          }
+
+          // 2. Check if session already active or hydrated from hash
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            completeAuth(session.user);
+            return;
           }
         }
       } catch (err) {
         console.error("[AuthCallback] Error during OAuth callback exchange:", err);
       }
-
-      // 3. Fallback: subscribe to auth state change in case of slight delay
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session?.user && !isHandled) {
-          isHandled = true;
-          useAuthStore.getState().syncSupabaseUser(session.user);
-          router.replace("/");
-        }
-      });
-
-      // Safety timeout
-      setTimeout(() => {
-        if (!isHandled) {
-          isHandled = true;
-          subscription.unsubscribe();
-          router.replace("/");
-        }
-      }, 2500);
     };
 
+    // 3. Fallback: subscribe to auth state change
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        completeAuth(session.user);
+      }
+    });
+
     handleCallback();
+
+    // Safety timeout: redirect within 2 seconds regardless to prevent hanging
+    const timer = setTimeout(() => {
+      if (!isHandled) {
+        isHandled = true;
+        subscription.unsubscribe();
+        router.replace("/");
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   return (
@@ -69,3 +77,4 @@ export default function AuthCallbackPage() {
     </div>
   );
 }
+

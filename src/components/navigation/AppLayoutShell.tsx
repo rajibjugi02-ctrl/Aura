@@ -36,10 +36,11 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         useAuthStore.getState().syncSupabaseUser(session.user);
+        if (pathname.startsWith("/auth") && pathname !== "/auth/callback") {
+          router.replace("/");
+        }
       }
-      if (!hasOAuthParams) {
-        setIsCheckingAuth(false);
-      }
+      setIsCheckingAuth(false);
     }).catch(() => {
       setIsCheckingAuth(false);
     });
@@ -61,7 +62,7 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
 
     const safetyTimer = setTimeout(() => {
       setIsCheckingAuth(false);
-    }, 1800);
+    }, 1500);
 
     return () => {
       clearTimeout(safetyTimer);
@@ -75,12 +76,13 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
     // Never redirect away from the callback page
     if (isCallbackPage) return;
 
-    // Wait if URL has active OAuth tokens in flight
     const hasOAuthParams =
       typeof window !== "undefined" &&
       (window.location.hash.includes("access_token=") ||
         window.location.search.includes("code="));
-    if (hasOAuthParams) return;
+
+    // If OAuth params are present in URL but user isn't authenticated yet, wait for listener
+    if (!isAuthenticated && hasOAuthParams) return;
 
     // Unauthenticated users must strictly start at Login
     if (!isAuthenticated && !isAuthPage) {

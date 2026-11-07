@@ -2,10 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { saveMediaFileToDb } from "./indexedDbMedia";
 
 const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-project.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ylglvvssqrtqyuxhdzyi.supabase.co";
 const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.mock_key_for_development";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZ2x2dnNzcXJ0cXl1eGhkenlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwMzg0MTksImV4cCI6MjEwOTYxNDQxOX0.Dre2iVzw-TztwG7EpR5OUpYeMPERBxjHczr5k155pho";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

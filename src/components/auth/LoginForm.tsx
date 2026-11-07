@@ -45,17 +45,18 @@ export function LoginForm() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       await loginWithGoogle();
-      if (
-        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
-      ) {
-        router.push("/");
-      }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Google login error:", err);
-      setError("Failed to initialize Google login. Please try again.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message: unknown }).message)
+          : "Failed to initialize Google login. Please check configuration.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
