@@ -21,16 +21,17 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setHasMounted(true);
 
+    // Immediately restore stored session from localStorage on client mount
+    const restored = useAuthStore.getState().restoreSession();
+    if (restored && pathname.startsWith("/auth") && pathname !== "/auth/callback") {
+      router.replace("/");
+    }
+
     // If on callback page, let AuthCallbackPage handle the token exchange directly
     if (isCallbackPage) {
       setIsCheckingAuth(false);
       return;
     }
-
-    const hasOAuthParams =
-      typeof window !== "undefined" &&
-      (window.location.hash.includes("access_token=") ||
-        window.location.search.includes("code="));
 
     // Hydrate Supabase authentication session on initial load
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -55,14 +56,12 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
       } else if (event === "SIGNED_OUT") {
         useAuthStore.getState().logout();
         setIsCheckingAuth(false);
-      } else {
-        setIsCheckingAuth(false);
       }
     });
 
     const safetyTimer = setTimeout(() => {
       setIsCheckingAuth(false);
-    }, 1500);
+    }, 2000);
 
     return () => {
       clearTimeout(safetyTimer);
@@ -81,13 +80,16 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
       (window.location.hash.includes("access_token=") ||
         window.location.search.includes("code="));
 
-    // If OAuth params are present in URL but user isn't authenticated yet, wait for listener
-    if (!isAuthenticated && hasOAuthParams) return;
+    // Wait if URL has active OAuth tokens in flight
+    if (hasOAuthParams) return;
+
+    const authState = useAuthStore.getState();
+    const isAuthed = authState.isAuthenticated || isAuthenticated;
 
     // Unauthenticated users must strictly start at Login
-    if (!isAuthenticated && !isAuthPage) {
+    if (!isAuthed && !isAuthPage) {
       router.replace("/auth/login");
-    } else if (isAuthenticated && isAuthPage) {
+    } else if (isAuthed && isAuthPage) {
       router.replace("/");
     }
   }, [isAuthenticated, isAuthPage, isCallbackPage, hasMounted, isCheckingAuth, router]);

@@ -24,6 +24,16 @@ export function LoginForm() {
     if (searchParams.get("registered") === "true") {
       setSuccessMsg("Account registered successfully! Please sign in with your credentials.");
     }
+    const err = searchParams.get("error");
+    if (err) {
+      if (err === "timeout") {
+        setError("Sign in timed out while connecting to Google. Please try again.");
+      } else if (err === "oauth_rejected") {
+        setError("Google authentication was cancelled or rejected.");
+      } else {
+        setError(`Authentication issue: ${err}`);
+      }
+    }
   }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -22,6 +22,7 @@ interface AuthState {
   removeAccount: (id: string) => void;
   updateBio: (bio: string, links?: { title: string; url: string }[]) => void;
   updateProfile: (profile: Partial<UserAccount>) => void;
+  restoreSession: () => boolean;
 }
 
 const STORAGE_KEY = "auraglass_auth_session";
@@ -64,6 +65,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   currentUser: initialState.currentUser,
   accounts: initialState.accounts,
   isAuthenticated: initialState.isAuthenticated,
+
+  restoreSession: () => {
+    if (typeof window === "undefined") return false;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.isAuthenticated && parsed.currentUser) {
+          const restoredState = {
+            currentUser: parsed.currentUser,
+            accounts: parsed.accounts || [parsed.currentUser],
+            isAuthenticated: true,
+          };
+          set(restoredState);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to restore auth session:", err);
+    }
+    return false;
+  },
 
   login: (identifier: string) => {
     const { accounts } = get();
