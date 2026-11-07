@@ -82,7 +82,7 @@ export default function AuthCallbackPage() {
       }
     };
 
-    // 4. Subscribe to auth state change in case of slight network delay
+    // 1. Subscribe to auth state change first so no event is missed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user && !isHandled) {
         completeAuth(session.user);
@@ -103,7 +103,7 @@ export default function AuthCallbackPage() {
           router.replace("/auth/login?error=timeout");
         }
       }
-    }, 3000);
+    }, 5000);
 
     return () => {
       clearTimeout(timer);

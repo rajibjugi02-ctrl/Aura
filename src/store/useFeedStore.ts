@@ -4,6 +4,7 @@ import { Post, PostComment } from "@/types";
 import { useAuthStore } from "./useAuthStore";
 import { useNotificationStore } from "./useNotificationStore";
 import { safeStorage } from "@/lib/safeStorage";
+import { liveSync } from "@/lib/liveSync";
 
 interface FeedState {
   posts: Post[];
@@ -74,6 +75,16 @@ export const useFeedStore = create<FeedState>()(
                   "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop",
               },
               postThumbnail: targetPost.media[0]?.url,
+            });
+          }
+
+          if (targetPost) {
+            liveSync.broadcast({
+              type: "POST_LIKE",
+              postId,
+              likesCount: targetPost.likesCount,
+              userId: currentUser?.id || "user",
+              isLiked: targetPost.isLiked,
             });
           }
 
@@ -160,6 +171,15 @@ export const useFeedStore = create<FeedState>()(
             postThumbnail: targetPost?.media[0]?.url,
           });
 
+          if (targetPost) {
+            liveSync.broadcast({
+              type: "POST_COMMENT",
+              postId,
+              comment: newComment,
+            });
+            liveSync.persistComment(postId, newComment);
+          }
+
           return { posts: updatedPosts };
         });
       },
@@ -191,12 +211,14 @@ export const useFeedStore = create<FeedState>()(
       },
 
       deletePost: (postId) => {
+        liveSync.broadcast({ type: "POST_DELETE", postId });
         set((state) => ({
           posts: state.posts.filter((p) => p.id !== postId),
         }));
       },
 
       archivePost: (postId) => {
+        liveSync.broadcast({ type: "POST_DELETE", postId });
         set((state) => ({
           posts: state.posts.filter((p) => p.id !== postId),
         }));
@@ -214,6 +236,9 @@ export const useFeedStore = create<FeedState>()(
           createdAt: "Just now",
           comments: [],
         };
+
+        liveSync.broadcast({ type: "POST_NEW", post });
+        liveSync.persistPost(post);
 
         set((state) => ({ posts: [post, ...state.posts] }));
       },

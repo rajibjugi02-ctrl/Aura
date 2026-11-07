@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { supabase } from "@/lib/supabase";
+import { liveSync } from "@/lib/liveSync";
 import { DesktopFloatingSidebar } from "./DesktopFloatingSidebar";
 import { MobileFloatingBottomBar } from "./MobileFloatingBottomBar";
 import { GlobalModals } from "./GlobalModals";
@@ -21,10 +22,16 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setHasMounted(true);
 
-    // Immediately restore stored session from localStorage on client mount
+    // Initialize cross-device real-time sync engine
+    liveSync.init();
+
+    // Immediately restore stored session from localStorage on client mount (Zero delay)
     const restored = useAuthStore.getState().restoreSession();
-    if (restored && pathname.startsWith("/auth") && pathname !== "/auth/callback") {
-      router.replace("/");
+    if (restored) {
+      setIsCheckingAuth(false);
+      if (pathname.startsWith("/auth") && pathname !== "/auth/callback") {
+        router.replace("/");
+      }
     }
 
     // If on callback page, let AuthCallbackPage handle the token exchange directly
@@ -50,6 +57,10 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         useAuthStore.getState().syncSupabaseUser(session.user);
         setIsCheckingAuth(false);
+        // Clean URL hash if returning from implicit OAuth
+        if (typeof window !== "undefined" && window.location.hash.includes("access_token=")) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
         if (pathname.startsWith("/auth") && pathname !== "/auth/callback") {
           router.replace("/");
         }
@@ -61,7 +72,7 @@ export function AppLayoutShell({ children }: { children: React.ReactNode }) {
 
     const safetyTimer = setTimeout(() => {
       setIsCheckingAuth(false);
-    }, 2000);
+    }, 1200);
 
     return () => {
       clearTimeout(safetyTimer);

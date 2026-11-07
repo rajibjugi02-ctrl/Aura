@@ -4,6 +4,7 @@ import { Note, ChatMessage } from "@/types";
 import { RealtimeChannelHub } from "@/lib/supabase";
 import { safeStorage } from "@/lib/safeStorage";
 import { useAuthStore } from "./useAuthStore";
+import { liveSync } from "@/lib/liveSync";
 
 export interface ConversationThread {
   id: string;
@@ -273,6 +274,11 @@ export const useChatStore = create<ChatState>()(
 
       // Broadcast via Realtime Channel
       hub.broadcast(`chat_${selectedConversationId}`, newMsg);
+      liveSync.broadcast({
+        type: "CHAT_MESSAGE",
+        conversationId: selectedConversationId,
+        message: newMsg,
+      });
     },
 
     receiveRealtimeMessage: (conversationId, message) => {

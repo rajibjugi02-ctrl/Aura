@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { RealtimeChannelHub } from "@/lib/supabase";
 import { useAuthStore } from "./useAuthStore";
 import { useNotificationStore } from "./useNotificationStore";
 import { safeStorage } from "@/lib/safeStorage";
+import { liveSync } from "@/lib/liveSync";
 
 export interface ReelData {
   id: string;
@@ -65,8 +65,8 @@ export const useReelsStore = create<ReelsState>()(
 
         set((state) => ({ reels: [newReel, ...state.reels] }));
 
-        // Broadcast to Realtime hub for instant zero-delay sync across explore & feeds
-        RealtimeChannelHub.getInstance().broadcast("reels", newReel);
+        liveSync.broadcast({ type: "REEL_NEW", reel: newReel });
+        liveSync.persistReel(newReel);
       },
 
       toggleLikeReel: (reelId: string) => {
@@ -161,16 +161,4 @@ if (typeof window !== "undefined") {
     localStorage.removeItem("auraglass_reels_v2");
     useReelsStore.setState({ reels: [] });
   } catch {}
-}
-
-// Listen to real-time reel uploads on client
-if (typeof window !== "undefined") {
-  RealtimeChannelHub.getInstance().subscribe("reels", (newReel: ReelData) => {
-    const store = useReelsStore.getState();
-    if (!store.reels.some((r) => r.id === newReel.id)) {
-      useReelsStore.setState((state) => ({
-        reels: [newReel, ...state.reels],
-      }));
-    }
-  });
 }

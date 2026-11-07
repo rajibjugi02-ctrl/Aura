@@ -14,6 +14,8 @@ import {
   Sparkles,
   Eye,
   Smile,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useStoryStore } from "@/store/useStoryStore";
@@ -49,6 +51,7 @@ export function StoryViewerModal() {
   const [progress, setProgress] = useState(0);
   const [replyText, setReplyText] = useState("");
   const [isPaused, setIsPaused] = useState(false);
+  const [isStoryMuted, setIsStoryMuted] = useState(false);
   const [showActivityViewer, setShowActivityViewer] = useState(false);
   const [flyingEmojis, setFlyingEmojis] = useState<{ id: number; emoji: string }[]>([]);
   const [measuredVideoDuration, setMeasuredVideoDuration] = useState<number | null>(null);
@@ -138,6 +141,12 @@ export function StoryViewerModal() {
   }, [isOpen, activeUserIndex, activeStoryIndex, currentStory, playTrack, pauseTrack]);
 
   useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isStoryMuted;
+    }
+  }, [isStoryMuted]);
+
+  useEffect(() => {
     if (isPaused) {
       pauseTrack();
       videoRef.current?.pause();
@@ -220,7 +229,7 @@ export function StoryViewerModal() {
                   src={currentStory.mediaUrl}
                   autoPlay
                   loop={false}
-                  muted
+                  muted={isStoryMuted}
                   playsInline
                   preload="auto"
                   onLoadedMetadata={(e) => {
@@ -403,6 +412,25 @@ export function StoryViewerModal() {
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
                   </DropdownMenu.Root>
+                )}
+
+                {/* Audio Mute/Unmute Toggle for Video Stories */}
+                {currentStory.type === "video" && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsStoryMuted((prev) => !prev);
+                    }}
+                    className="p-1.5 text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors focus:outline-none"
+                    aria-label={isStoryMuted ? "Unmute story video" : "Mute story video"}
+                  >
+                    {isStoryMuted ? (
+                      <VolumeX className="w-4 h-4 text-white" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-white" />
+                    )}
+                  </button>
                 )}
 
                 {/* X button to close */}

@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { StoryUserGroup, StoryItem } from "@/types";
 import { useAuthStore } from "./useAuthStore";
 import { safeStorage } from "@/lib/safeStorage";
+import { liveSync } from "@/lib/liveSync";
 
 interface StoryState {
   isOpen: boolean;
@@ -150,11 +151,13 @@ export const useStoryStore = create<StoryState>()(
     const selfGroupIndex = userGroups.findIndex((g) => g.userId === userId);
     if (selfGroupIndex >= 0) {
       const updatedGroups = [...userGroups];
-      updatedGroups[selfGroupIndex] = {
+      const targetGroup = {
         ...updatedGroups[selfGroupIndex],
         hasUnseen: true,
         stories: [newStory, ...updatedGroups[selfGroupIndex].stories],
       };
+      updatedGroups[selfGroupIndex] = targetGroup;
+      liveSync.broadcast({ type: "STORY_NEW", group: targetGroup });
       set({ userGroups: updatedGroups });
     } else {
       const newGroup: StoryUserGroup = {
@@ -164,6 +167,7 @@ export const useStoryStore = create<StoryState>()(
         hasUnseen: true,
         stories: [newStory],
       };
+      liveSync.broadcast({ type: "STORY_NEW", group: newGroup });
       set({ userGroups: [newGroup, ...userGroups] });
     }
   },
