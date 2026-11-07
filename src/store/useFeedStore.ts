@@ -227,9 +227,7 @@ export const useFeedStore = create<FeedState>()(
 
       clearMockPosts: () => {
         set((state) => ({
-          posts: state.posts.filter(
-            (p) => p.author?.id !== "user_self" && p.author?.username !== "user"
-          ),
+          posts: state.posts.filter((p) => !p.id.startsWith("mock_")),
         }));
       },
 

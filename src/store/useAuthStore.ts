@@ -82,6 +82,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return true;
         }
       }
+
+      // Fallback: check Supabase session token in localStorage
+      const sbKey = Object.keys(localStorage).find(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+      );
+      if (sbKey) {
+        const sbRaw = localStorage.getItem(sbKey);
+        if (sbRaw) {
+          const sbParsed = JSON.parse(sbRaw);
+          const sbUser = sbParsed.user || sbParsed.currentSession?.user;
+          if (sbUser) {
+            get().syncSupabaseUser(sbUser);
+            return true;
+          }
+        }
+      }
     } catch (err) {
       console.error("Failed to restore auth session:", err);
     }

@@ -167,9 +167,9 @@ export default function UploadPage() {
 
     createPost({
       author: {
-        id: currentUser?.id || "user_self",
-        name: currentUser?.name || "You",
-        username: currentUser?.username || "user",
+        id: currentUser?.id || `acc_${Date.now()}`,
+        name: currentUser?.name || "Aura Member",
+        username: currentUser?.username || `user_${Date.now().toString().slice(-4)}`,
         avatar:
           currentUser?.avatar ||
           "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop",

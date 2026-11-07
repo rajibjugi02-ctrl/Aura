@@ -153,12 +153,3 @@ export const useReelsStore = create<ReelsState>()(
     }
   )
 );
-
-// Wipe any legacy dummy/mock reels on boot
-if (typeof window !== "undefined") {
-  try {
-    localStorage.removeItem("auraglass_reels");
-    localStorage.removeItem("auraglass_reels_v2");
-    useReelsStore.setState({ reels: [] });
-  } catch {}
-}

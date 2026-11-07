@@ -83,15 +83,6 @@ export const useNotificationStore = create<NotificationState>()(
   )
 );
 
-// Wipe any legacy dummy/mock notifications on boot
-if (typeof window !== "undefined") {
-  try {
-    localStorage.removeItem("auraglass_notifications");
-    localStorage.removeItem("auraglass_notifications_v2");
-    useNotificationStore.setState({ notifications: [], unreadCount: 0 });
-  } catch {}
-}
-
 // Subscribe to real-time broadcast channel once on client boot
 if (typeof window !== "undefined") {
   RealtimeChannelHub.getInstance().subscribe("notifications", (incoming: NotificationItem) => {
